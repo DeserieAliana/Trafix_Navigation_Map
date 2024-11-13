@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trafix Map - Navigation</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" />
+  <style>
+    #map { height: 100vh; }
+    .search-bar { position: absolute; top: 10px; left: 10px; z-index: 1000; background-color: white; padding: 10px; border-radius: 5px; box-shadow: 0 0 5px rgba(0, 0, 0, 0.2); }
+    .leaflet-control-container { z-index: 9999; }
+  </style>
+</head>
+<body>
+
+<!-- Search Bar for Start and End Locations -->
+<div class="search-bar">
+  <input type="text" id="start" placeholder="Enter Start Location" />
+  <input type="text" id="end" placeholder="Enter End Location" />
+  <button id="findRoute">Find Route</button>
+</div>
+
+<!-- Map Container -->
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
+<script src="https://unpkg.com/leaflet-geocoder/dist/leaflet-geocoder.js"></script>
+
+<script>
+// Map initialization
+var map = L.map('map').setView([14.5995, 120.9842], 12); // Center on Metro Manila
+
+// Add OpenStreetMap tile layer
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+}).addTo(map);
+
+// Initialize Routing Machine variable
+var routeControl;
+
+// Function to clear previous route
+function clearRoute() {
+  if (routeControl) {
+    routeControl.setWaypoints([]);
+  }
+}
+
+// Handle search and route finding
+document.getElementById("findRoute").onclick = function() {
+  var startLocation = document.getElementById("start").value;
+  var endLocation = document.getElementById("end").value;
+
+  if (startLocation && endLocation) {
+    // Clear any previous routes
+    clearRoute();
+
+    // Geocode Start and End locations to get latitude/longitude
+    var geocoder = L.Control.Geocoder.nominatim();
+    
+    // Geocode the start location
+    geocoder.geocode(startLocation, function(results) {
+      if (results && results.length > 0) {
+        var startLatLon = results[0].center;
+        
+        // Geocode the end location
+        geocoder.geocode(endLocation, function(results) {
+          if (results && results.length > 0) {
+            var endLatLon = results[0].center;
+
+            // Add the route to the map
+            routeControl = L.Routing.control({
+              waypoints: [
+                L.latLng(startLatLon.lat, startLatLon.lng),
+                L.latLng(endLatLon.lat, endLatLon.lng)
+              ],
+              routeWhileDragging: true,
+              createMarker: function() { return null; } // Disable markers for route points
+            }).addTo(map);
+
+            // Display route summary (distance and duration)
+            routeControl.on('routesfound', function(e) {
+              var route = e.routes[0];
+              var distance = route.summary.totalDistance / 1000; // Convert to kilometers
+              var duration = route.summary.totalTime / 60; // Convert to minutes
+              alert("Route found! Distance: " + distance.toFixed(2) + " km, Duration: " + duration.toFixed(0) + " minutes.");
+            });
+          } else {
+            alert("End location not found.");
+          }
+        });
+      } else {
+        alert("Start location not found.");
+      }
+    });
+  } else {
+    alert("Please enter both start and end locations.");
+  }
+};
+</script>
+
+</body>
+</html>
